@@ -1,0 +1,7 @@
+INDEX VERSION 1.3+C:\DAIICT\SEM3\online-shopping\.metadata\.plugins\org.eclipse.wst.jsdt.core\indexes
+3428568925.index
+1447430340.index
+1017348071.index
+2775003599.index
+1784581239.index
+2533636787.index

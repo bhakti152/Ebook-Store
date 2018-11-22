@@ -1,0 +1,120 @@
+package net.kzn.shoppingbackend.daoimpl;
+
+import java.util.List;
+
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import net.kzn.shoppingbackend.dao.FavouriteLineDAO;
+import net.kzn.shoppingbackend.dto.Favourite;
+import net.kzn.shoppingbackend.dto.FavouriteLine;
+import net.kzn.shoppingbackend.dto.OrderDetail;
+
+@Repository("favouriteLineDAO")
+@Transactional
+public class FavouriteLineDAOImpl implements FavouriteLineDAO {
+
+	@Autowired
+	private SessionFactory sessionFactory;
+	
+	@Override
+	public FavouriteLine getByFavouriteAndProduct(int favouriteId, int productId) {
+		String query = "FROM FavouriteLine WHERE favouriteId = :favouriteId AND product.id = :productId";
+		try {
+			
+			return sessionFactory.getCurrentSession()
+									.createQuery(query,FavouriteLine.class)
+										.setParameter("favouriteId", favouriteId)
+										.setParameter("productId", productId)
+											.getSingleResult();
+			
+		}catch(Exception ex) {
+			return null;	
+		}
+		
+	}
+
+	@Override
+	public boolean add(FavouriteLine favouriteLine) {
+		try {
+			sessionFactory.getCurrentSession().persist(favouriteLine);
+			return true;
+		}
+		catch(Exception ex) {
+			ex.printStackTrace();
+			return false;
+		}
+	}
+
+	@Override
+	public boolean update(FavouriteLine favouriteLine) {
+		try {
+			sessionFactory.getCurrentSession().update(favouriteLine);
+			return true;
+		}
+		catch(Exception ex) {
+			ex.printStackTrace();
+			return false;
+		}
+	}
+
+	@Override
+	public boolean remove(FavouriteLine favouriteLine) {	
+		try {			
+			sessionFactory.getCurrentSession().delete(favouriteLine);
+			return true;
+		}catch(Exception ex) {
+			return false;
+		}		
+	}
+
+
+	@Override
+	public List<FavouriteLine> list(int favouriteId) {
+		String query = "FROM FavouriteLine WHERE favouriteId = :favouriteId";
+		return sessionFactory.getCurrentSession()
+								.createQuery(query, FavouriteLine.class)
+									.setParameter("favouriteId", favouriteId)
+										.getResultList();		
+	}
+
+	@Override
+	public FavouriteLine get(int id) {		
+		return sessionFactory.getCurrentSession().get(FavouriteLine.class, Integer.valueOf(id));
+	}
+
+	@Override
+	public boolean updateFavourite(Favourite favourite) {
+		try {			
+			sessionFactory.getCurrentSession().update(favourite);			
+			return true;
+		}
+		catch(Exception ex) {
+			return false;
+		}
+	}
+
+	@Override
+	public List<FavouriteLine> listAvailable(int favouriteId) {
+		String query = "FROM FavouriteLine WHERE favouriteId = :favouriteId AND available = :available";
+		return sessionFactory.getCurrentSession()
+								.createQuery(query, FavouriteLine.class)
+									.setParameter("favouriteId", favouriteId)
+									.setParameter("available", true)
+										.getResultList();
+	}
+
+	@Override
+	public boolean addOrderDetail(OrderDetail orderDetail) {
+		try {			
+			sessionFactory.getCurrentSession().persist(orderDetail);			
+			return true;
+		}
+		catch(Exception ex) {
+			return false;
+		}
+	}
+		
+}

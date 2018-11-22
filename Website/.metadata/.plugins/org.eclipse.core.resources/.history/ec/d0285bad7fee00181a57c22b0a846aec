@@ -1,0 +1,23 @@
+package ebookbackend.dao;
+
+import java.util.List;
+
+import ebookbackend.dto.Book;
+
+public interface BookDAO {
+
+	Book get(int productId);
+	List<Book> list();	
+	boolean add(Book product);
+	boolean update(Book product);
+	boolean delete(Book product);
+
+	List<Book> getProductsByParam(String param, int count);	
+	
+	
+	// business methods
+	List<Book> listActiveProducts();	
+	List<Book> listActiveProductsByCategory(int categoryId);
+	List<Book> getLatestActiveProducts(int count);
+	
+}

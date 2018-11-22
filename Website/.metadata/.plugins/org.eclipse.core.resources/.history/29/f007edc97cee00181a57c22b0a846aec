@@ -1,0 +1,174 @@
+package ebook.service;
+
+import java.util.List;
+
+import javax.servlet.http.HttpSession;
+
+import net.ebook.model.UserModel;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import ebookbackend.dao.FavouriteLineDAO;
+import ebookbackend.dao.ProductDAO;
+import ebookbackend.dao.UserDAO;
+import ebookbackend.dto.Favourite;
+import ebookbackend.dto.FavouriteLine;
+import ebookbackend.dto.Product;
+
+@Service("favouriteService")
+public class FavouriteService {
+
+	@Autowired
+	private FavouriteLineDAO favouriteLineDAO;
+	
+	@Autowired
+	private ProductDAO productDAO;
+		
+	@Autowired
+	private HttpSession session;
+	
+	public List<FavouriteLine> getFavouriteLines() {
+
+		return favouriteLineDAO.list(getFavourite().getId());
+
+	}
+	
+	/* to update the favourite count */
+	public String manageFavouriteLine(int favouriteLineId, int count) {
+		
+		FavouriteLine favouriteLine = favouriteLineDAO.get(favouriteLineId);		
+
+		double oldTotal = favouriteLine.getTotal();
+
+		
+		Product product = favouriteLine.getProduct();
+		
+		// check if that much quantity is available or not
+		
+		
+		// update the favourite line
+		favouriteLine.setProductCount(count);
+		favouriteLine.setBuyingPrice(product.getUnitPrice());
+		favouriteLine.setTotal(product.getUnitPrice() * count);
+		favouriteLineDAO.update(favouriteLine);
+
+	
+		// update the favourite
+		Favourite favourite = this.getFavourite();
+		favourite.setGrandTotal(favourite.getGrandTotal() - oldTotal + favouriteLine.getTotal());
+		favouriteLineDAO.updateFavourite(favourite);
+		
+		return "result=updated";
+	}
+
+
+
+	public String addFavouriteLine(int productId) {		
+		Favourite favourite = this.getFavourite();
+		String response = null;
+		FavouriteLine favouriteLine = favouriteLineDAO.getByFavouriteAndProduct(favourite.getId(), productId);
+		if(favouriteLine==null) {
+			// add a new favouriteLine if a new product is getting added
+			favouriteLine = new FavouriteLine();
+			Product product = productDAO.get(productId);
+			// transfer the product details to favouriteLine
+			favouriteLine.setFavouriteId(favourite.getId());
+			favouriteLine.setProduct(product);
+			favouriteLine.setProductCount(1);
+			favouriteLine.setBuyingPrice(product.getUnitPrice());
+			favouriteLine.setTotal(product.getUnitPrice());
+			
+			// insert a new favouriteLine
+			favouriteLineDAO.add(favouriteLine);
+			
+			// update the favourite
+			favourite.setGrandTotal(favourite.getGrandTotal() + favouriteLine.getTotal());
+			favourite.setFavouriteLines(favourite.getFavouriteLines() + 1);
+			favouriteLineDAO.updateFavourite(favourite);
+
+			response = "result=added";						
+		} 
+		else {
+			// check if the favouriteLine has been already reached to maximum count
+			if(favouriteLine.getProductCount() < 3) {
+				// call the manageFavouriteLine method to increase the count
+				response = this.manageFavouriteLine(favouriteLine.getId(), favouriteLine.getProductCount() + 1);				
+			}			
+			else {				
+				response = "result=maximum";				
+			}						
+		}		
+		return response;
+	}
+	
+	private Favourite getFavourite() {
+		return ((UserModel)session.getAttribute("userModel")).getFavourite();
+	}
+
+
+	public String removeFavouriteLine(int favouriteLineId) {
+		
+		FavouriteLine favouriteLine = favouriteLineDAO.get(favouriteLineId);
+		// deduct the favourite
+		// update the favourite
+		Favourite favourite = this.getFavourite();	
+		favourite.setGrandTotal(favourite.getGrandTotal() - favouriteLine.getTotal());
+		favourite.setFavouriteLines(favourite.getFavouriteLines() - 1);		
+		favouriteLineDAO.updateFavourite(favourite);
+		
+		// remove the favouriteLine
+		favouriteLineDAO.remove(favouriteLine);
+				
+		return "result=deleted";
+	}
+
+
+	public String validateFavouriteLine() {
+		Favourite favourite = this.getFavourite();
+		List<FavouriteLine> favouriteLines = favouriteLineDAO.list(favourite.getId());
+		double grandTotal = 0.0;
+		int lineCount = 0;
+		String response = "result=success";
+		boolean changed = false;
+		Product product = null;
+		for(FavouriteLine favouriteLine : favouriteLines) {					
+			product = favouriteLine.getProduct();
+			changed = false;
+			// check if the product is active or not
+			// if it is not active make the availability of favouriteLine as false
+				
+			// check if the favouriteLine is not available
+			// check whether the product is active and has at least one quantity available
+			
+			// check if the buying price of product has been changed
+			if(favouriteLine.getBuyingPrice() != product.getUnitPrice()) {
+				// set the buying price to the new price
+				favouriteLine.setBuyingPrice(product.getUnitPrice());
+				// calculate and set the new total
+				favouriteLine.setTotal(favouriteLine.getProductCount() * product.getUnitPrice());
+				changed = true;				
+			}
+			
+			// check if that much quantity of product is available or not
+			
+			
+			// changes has happened
+			if(changed) {				
+				//update the favouriteLine
+				favouriteLineDAO.update(favouriteLine);
+				// set the result as modified
+				response = "result=modified";
+			}
+			
+			grandTotal += favouriteLine.getTotal();
+			lineCount++;
+		}
+		
+		favourite.setFavouriteLines(lineCount++);
+		favourite.setGrandTotal(grandTotal);
+		favouriteLineDAO.updateFavourite(favourite);
+
+		return response;
+	}	
+}

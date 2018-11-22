@@ -1,0 +1,99 @@
+package ebook.controller;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
+
+import ebook.service.FavouriteService;
+
+@Controller
+@RequestMapping("/favourite")
+public class FavouriteController {
+
+	private final static Logger logger = LoggerFactory.getLogger(FavouriteController.class);
+	
+	@Autowired
+	private FavouriteService favouriteService;
+	@RequestMapping("/show")
+	public ModelAndView showFavourite(@RequestParam(name = "result", required = false) String result) {
+		
+		ModelAndView mv = new ModelAndView("page");
+		mv.addObject("title", "Shopping Favourite");
+		mv.addObject("userClickShowFavourite", true);
+		
+		if(result!=null) {
+			switch(result) {
+				case "added":
+					mv.addObject("message", "Product has been successfully added inside favourite!");					
+					favouriteService.validateFavouriteLine();
+					break;
+				case "unavailable":
+					mv.addObject("message", "Product quantity is not available!");					
+					break;
+				case "updated":
+					mv.addObject("message", "Favourite has been updated successfully!");					
+					favouriteService.validateFavouriteLine();
+					break;
+				case "modified":
+					mv.addObject("message", "One or more items inside favourite has been modified!");
+					break;
+				case "maximum":
+					mv.addObject("message", "Maximum limit for the item has been reached!");
+					break;
+				case "deleted":
+					mv.addObject("message", "FavouriteLine has been successfully removed!");
+					break;
+
+			}
+		}
+		else {
+			String response = favouriteService.validateFavouriteLine();
+			if(response.equals("result=modified")) {
+				mv.addObject("message", "One or more items inside favourite has been modified!");
+			}
+		}
+
+		mv.addObject("favouriteLines", favouriteService.getFavouriteLines());
+		return mv;
+		
+	}
+	
+
+	@RequestMapping("/{favouriteLineId}/update")
+	public String udpateFavouriteLine(@PathVariable int favouriteLineId, @RequestParam int count) {
+		String response = favouriteService.manageFavouriteLine(favouriteLineId, count);		
+		return "redirect:/favourite/show?"+response;		
+	}
+	
+	@RequestMapping("/add/{productId}/product")
+	public String addFavouriteLine(@PathVariable int productId) {
+		String response = favouriteService.addFavouriteLine(productId);
+		return "redirect:/favourite/show?"+response;
+	}
+	
+	@RequestMapping("/{favouriteLineId}/remove")
+	public String removeFavouriteLine(@PathVariable int favouriteLineId) {
+		String response = favouriteService.removeFavouriteLine(favouriteLineId);
+		return "redirect:/favourite/show?"+response;
+	}
+	
+	/* after validating it redirect to checkout
+	 * if result received is success proceed to checkout 
+	 * else display the message to the user about the changes in favourite page
+	 * */	
+	@RequestMapping("/validate")
+	public String validateFavourite() {	
+		String response = favouriteService.validateFavouriteLine();
+		if(!response.equals("result=success")) {
+			return "redirect:/favourite/show?"+response;
+		}
+		else {
+			return "redirect:/favourite/checkout";
+		}
+	}	
+}
